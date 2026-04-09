@@ -34,7 +34,7 @@ function main()
     end
 
     
-    S1_1_test_result, num_S1_2_records = test_record_S1_1(rcd_contents[1])
+    S1_1_test_result, num_S1_2_records= test_record_S1_1(rcd_contents[1])
 
     println("S1.1 test result: $S1_1_test_result, Number of S1.2 records: $num_S1_2_records")
     
@@ -47,11 +47,51 @@ function main()
     S1_3_test_result = test_record_S1_3(rcd_contents[next_test_record])
     println("S1.3 test result: $S1_3_test_result")
 
-    S1_4_test_result = test_record_S1_4(rcd_contents[next_test_record + 1])
-    println("S1.4 test result: $S1_4_test_result") 
+    S1_4_test_result, process_S1_5, number_of_transverse_profile_points = test_record_S1_4(rcd_contents[next_test_record + 1])
+    println("S1.4 test result: $S1_4_test_result")
+
+    next_test_record += 2 # move the index to the next record after S1.4, which is S1.5 if it exists, so we add 2 to skip over the S1.4 record and move to the next one
 
     # the next record to test would be S1.5, which is at index next_test_record + 2, and so on for the rest of the records in the RCD file
     # but it will not exist if the field in the S1.4 record at position 18-29 contains zero (-0.000000000)
+
+    if process_S1_5
+        #next_test_record += 1
+        S1_5_test_result = test_record_S1_5(rcd_contents[next_test_record])
+        println("S1.5 test result: $S1_5_test_result")
+        next_test_record += 1
+    else
+        #next_test_record += 1
+        println("No S1.5 records to test based on S1.4 data")
+    end
+
+    if number_of_transverse_profile_points > 0
+        
+        # There are $number_of_transverse_profile_points transverse profile points, so there will be $number_of_transverse_profile_points S1.6 records to test
+        # the records contain 10 of F6.3 per line
+        S1_6_record_count, remaining_values_in_last_record = divrem(number_of_transverse_profile_points, 10) # each S1.6 record can contain 60 characters, which is 10 F6.3 values 
+                                                                                                # each F6.3 value is 8 characters including the decimal point and 3 decimal places)
+                                                                                                # the divrem function will give us the number of full S1.6 records and the
+                                                                                                #number of remaining values that will be in the last S1.6 record if there are any
+
+        # if there are remaining values in the last record then we need to add one more record to the count
+        if remaining_values_in_last_record > 0
+            S1_6_record_count += 1
+        end
+        
+        println("There are $transverse_profile_points transverse profile points, so there will be $(S1_6_record_count) S1.6 records to test")
+
+        for i in 1:(S1_6_record_count)
+            
+            println("Testing S1.6 record at index: $next_test_record")
+            # S1_6_test_result = test_record_S1_6(rcd_contents[next_test_record])
+            println("S1.6 record content: ", rcd_contents[next_test_record])
+            #println("S1.6 test result for record $i: $S1_6_test_result")
+            next_test_record += 1
+        end
+    else
+        println("No transverse profile points, so no S1.6 records to test")
+    end
 end
 
 function is_valid_date(date_str::String)
@@ -147,7 +187,8 @@ function is_valid_f6_3(str::String)
     # F6.3: 6 total chars, 3 decimal places
     # Format: optional leading spaces, digits, decimal point, 3 decimal digits = 6 chars
     # Example: 12.345
-    return length(str) == 6 && occursin(r"^\s*\d+\.\d{3}$", str)
+    return length(str) == 6 && occursin(r"^\s*[+-]?\d+\.\d{3}$", str)
+    
 end
 
 function is_valid_f5_3(str::String)
@@ -238,7 +279,7 @@ function test_record_S1_4(line::String)
     p6 = line[43:48] # Example: characters 43-48
     p7 = line[49:54] # Example: characters 49-54
     p8 = line[55:66] # Example: characters 55-66
-    p9 = line[67:69] # Example: characters 67-69
+    p9 = line[67:69] # number of transverse profile points
     p10 = line[70:81] # Example: characters 70-81
     p11 = line[82:93] # Example: characters 82-93
     p12 = line[94:105] # Example: characters 94-105
@@ -251,7 +292,7 @@ function test_record_S1_4(line::String)
     p19 = line[127:138] # Example: characters 127-138
     p20 = line[139:140] # Example: characters 139-141
     p21 = line[141:145] # Example: characters 141-145
-    p22 = line[146:150] # Example: characters 146-150
+    p22 = line[146:150] # Number of offside studs
     p23 = line[151:151] # Example: characters 151-151
     p24 = line[152:152] # Example: characters 152-152
     p25 = line[153:164] # Example: characters 153-164
@@ -263,12 +304,13 @@ function test_record_S1_4(line::String)
     p31 = line[198:199] # Example: characters 194-199
     p32 = line[200:204] # Example: characters 200-210
     p33 = line[205:211] # Example: characters 206-207
-    p34 = line[212:216] # Example: characters 212-223
+    p34 = line[212:216] # Number of visual defects
 
     # validity tests
     p1_valid = is_valid_int_0_to_99999(p1::String)
     p2_valid = is_valid_f12_9(p2::String)
     p3_valid = is_valid_f12_9(p3::String)
+    #print("p3 value: '$p3'") # Debug print to check the value of p3
     p4_valid = (p4 == "L" || p4 == "R" || p4 == "B" || p4 == "N" || p4 == "F")
     p5_valid = is_valid_f12_9(p5::String) # Example check for float12.9 value
     p6_valid = is_valid_f6_3(p6::String) # Example check for float6.3 value
@@ -282,33 +324,67 @@ function test_record_S1_4(line::String)
     p14_valid = (p14 == "Y" || p14 == "N")
     p15_valid = is_valid_f6_3(p15::String) # Example check for float6.3 value
     p16_valid = (p16 == "Y" || p16 == "N")
-    p17_valid = is_valid_f12_9(p17::String) # Example check for float12.9 value
-    p18_valid = is_valid_int_0_to_99(p18::String) # Example check for int 0-99
-    p19_valid = is_valid_int_0_to_99999(p19::String) # Example check for int 0-99999
-    p20_valid = is_valid_int_0_to_99999(p20::String) # Example check for int 0-99999
-    p21_valid = (p21 == "I" || p21 == "E" || p21 == "B" || p21 == "N")
-    p22_valid = (p22 == "A" || p22 == "C")
-    p23_valid = is_valid_f12_9(p23::String) # Example check for float12.9 value
-    p24_valid = is_valid_int_0_to_99(p24::String) # Example check for int 0-99
+    p17_valid = is_valid_f6_3(p17::String) # Example check for float12.9 value
+    #print("p17 value: '$p17'") # Debug print to check the value of p17
+    p18_valid = (p18 == "Y" || p18 == "N") #is_valid_int_0_to_99(p18::String) # Example check for int 0-99
+    #print("p18 value: '$p18'") # Debug print to check the value of p18
+    p19_valid = is_valid_f12_9(p19::String) #|| p19 == "   -1" # 
+    #print("p19 value: '$p19'") # Debug print to check the value of p19
+    p20_valid = is_valid_int_0_to_99(p20::String) # Example check for int 0-99
+    #print("p20 value: '$p20'") # Debug print to check the value of p20
+    #p21_valid = (p21 == "I" || p21 == "E" || p21 == "B" || p21 == "N") # Example check for specific char values
+    p21_valid = is_valid_int_0_to_99999(p21::String) || p21 == "   -1"
+    #print("p21 value: '$p21'") # Debug print to check the value of p21
+    #p22_valid = (p22 == "A" || p22 == "C")
+    p22_valid = is_valid_int_0_to_99999(p22::String) || p22 == "   -1"
+    #print("p22 value: '$p22'") # Debug print to check the value of p22
+    #p23_valid = is_valid_f12_9(p23::String) # Example check for float12.9 value
+    p23_valid = (p23 == "I" || p23 == "E" || p23 == "B" || p23 == "N") # Example check for specific char values
+    #print("p23 value: '$p23'") # Debug print to check the value of p23
+    #p24_valid = is_valid_int_0_to_99(p24::String) # Example check for int 0-99
+    p24_valid = (p24 == "A" || p24 == "C")
     p25_valid = is_valid_f12_9(p25::String) # Example check for float12.9 value
     p26_valid = is_valid_int_0_to_99(p26::String) # Example check for int 0-99
-    p27_valid = is_valid_f11_3(p27::String) # Example check for float11.3 value
-    p28_valid = is_valid_f6_3(p28::String) # Example check for float6.3 value
-    p29_valid = is_valid_int_0_to_99(p29::String) # Example check for int 0-999
-    p30_valid = is_valid_f5_3(p30::String) # Example check for float12.9 value
+    p27_valid = is_valid_f12_9(p27::String) # Example check for float11.3 value
+    #print("p27 value: '$p27'") # Debug print to check the value of p27
+    #p28_valid = is_valid_f6_3(p28::String) # Example check for float6.3 value
+    #print("p28 value: '$p28'") # Debug print to check the value of p28
+    p28_valid = is_valid_int_0_to_99(p28::String) # Example check for int 0-999
+    #print("p29 value: '$p29'") # Debug print to check the value of p29
+    p29_valid = is_valid_f11_3(p29::String) # Example check for float6.3 value
+    p30_valid = is_valid_f6_3(p30::String) # Example check for float12.9 value
+    #print("p30 value: '$p30'") # Debug print to check the value of p30
     p31_valid = is_valid_int_0_to_99(p31::String)
     p32_valid = is_valid_f5_3(p32::String) # Example check for float6.3 value
     p33_valid = is_valid_int_0_to_9999999(p33::String) # Example check for float6.3 value
     p34_valid = is_valid_int_0_to_99999(p34::String) # Example check for float12.9 value
 
-    retro_data_exists = (p3_valid && p3 != "-0.000000000") # if the field in the S1.4 record at position 18-29 contains zero (-0.000000000) then there will be no record S1.5
+    #println("Validation Results: ", "p1_valid=$p1_valid, p2_valid=$p2_valid, p3_valid=$p3_valid, p4_valid=$p4_valid, p5_valid=$p5_valid, p6_valid=$p6_valid, p7_valid=$p7_valid, p8_valid=$p8_valid, p9_valid=$p9_valid, p10_valid=$p10_valid, p11_valid=$p11_valid, p12_valid=$p12_valid, p13_valid=$p13_valid, p14_valid=$p14_valid, p15_valid=$p15_valid, p16_valid=$p16_valid, p17_valid=$p17_valid, p18_valid=$p18_valid, p19_valid=$p19_valid, p20_valid=$p20_valid, p21_valid=$p21_valid, p22_valid=$p22_valid, p23_valid=$p23_valid, p24_valid=$p24_valid, p25_valid=$p25_valid, p26_valid=$p26_valid, p27_valid=$p27_valid, p28_valid=$p28_valid, p29_valid=$p29_valid, p30_valid=$p30_valid, p31_valid=$p31_valid, p32_valid=$p32_valid, p33_valid=$p33_valid, p34_valid=$p34_valid")
 
+    retro_data_exists = (p3_valid && p3 != "-0.000000000") # if the field in the S1.4 record at position 18-29 contains zero (-0.000000000) then there will be no record S1.5
+    transverse_profile_points = parse(Int, p9) # number of transverse profile points is used to determine how many S1.6 records there are
     S1_4_valid = all_valid(p8_valid, p9_valid, p10_valid, p11_valid, p12_valid, p13_valid, p14_valid, p15_valid, p16_valid, p17_valid, p18_valid, p19_valid, p20_valid, p21_valid, p22_valid, p23_valid, p24_valid, p25_valid, p26_valid, p27_valid, p28_valid, p29_valid, p30_valid, p31_valid, p32_valid, p33_valid, p34_valid)
 
     println("Testing S1.4 line: $line")
-    return S1_4_valid, retro_data_exists # return values
+    return S1_4_valid, retro_data_exists, transverse_profile_points # return values
+
 end
 
+function test_record_S1_5(line::String)
+    # Implementation for testing the S1.5 record of the RCD file
+    # This is a placeholder for the actual test logic
+    println("Testing S1.5 line: $line")
+    p1 = line[1:2] # Example: characters 1-11 should contain a float11.3 value
+    p2 = line[4:8] # Example: characters 12-22 should contain a float11.3 value
+    p3 = line[9:13] # Example: characters 23-31 should contain a float9.3 value
 
+    p1_valid = is_valid_int_0_to_999(p1::String) # Example check for 3 digit integer value
+    p2_valid = is_valid_f5_3(p2::String) # Example check for float11.3 value
+    p3_valid = is_valid_f5_3(p3::String) # Example check for float9.3 value
+
+    S1_5_valid = all_valid(p1_valid, p2_valid, p3_valid)
+    println("Validation result for S1.5: $S1_5_valid")
+    return S1_5_valid # return value
+end
 main() 
  
