@@ -11,6 +11,13 @@ function test_record_S1_5(line::String)
     p3_valid = is_valid_f5_3(p3::String) # Example check for float9.3 value
 
     S1_5_valid = all_valid(p1_valid, p2_valid, p3_valid)
-    println("Validation result for S1.5: $S1_5_valid")
-    return S1_5_valid # return value
+
+    points_in_retro_profile = p1
+    width_of_rerro_profile = p2
+    length_of_retro_profile = p3
+    println("Validation result for S1.5: $S1_5_valid, 
+            points_in_retro_profile=$points_in_retro_profile, 
+            width_of_retro_profile=$width_of_rerro_profile, 
+            length_of_retro_profile=$length_of_retro_profile")
+    return S1_5_valid, points_in_retro_profile, width_of_rerro_profile, length_of_retro_profile # return values
 end

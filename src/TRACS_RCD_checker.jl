@@ -5,9 +5,13 @@ using Dates
 include("test_octave_frequencies.jl")
 include("test_transverse_points.jl")
 include("format_checking.jl")
+include("analyse_file.jl")
+include("test_record_S3_1.jl")
 include("test_record_S1_5.jl")
 include("test_record_S1_4.jl")
 include("test_record_S1_1_to_3.jl")
+
+const XSECT_CODE = Dict("L" => 1, "R" => 1, "B" => 2, "n" => 0, "F" => 2)
 
 function select_file_to_read()
     # Implementation for selecting a file to read
@@ -59,6 +63,7 @@ function main()
                                     interior_noise_points, 
                                     exterior_noise_points,
                                     number_of_location_markers,
+                                    retro_positions,
                                     geometric_chainage_interval = test_record_S1_4(rcd_contents[next_test_record + 1])
     println("S1.4 test result: $S1_4_test_result")
 
@@ -69,7 +74,9 @@ function main()
 
     if process_S1_5
         #next_test_record += 1
-        S1_5_test_result = test_record_S1_5(rcd_contents[next_test_record])
+        S1_5_test_result, points_in_retro_profile,
+                        width_of_retro_profile,
+                        length_of_retro_profile = test_record_S1_5(rcd_contents[next_test_record])
         println("S1.5 test result: $S1_5_test_result")
         next_test_record += 1
     else
@@ -118,14 +125,54 @@ function main()
 
     #println(divrem(total_survey_length, geometric_chainage_interval))
     #println(div(total_survey_length, geometric_chainage_interval))
-    number_of_s3_1_records = div(total_survey_length, geometric_chainage_interval) 
+    number_of_s3_1_records = Int(div(total_survey_length, geometric_chainage_interval))
 
-    for i in 1:number_of_s3_1_records
-        println(rcd_contents[next_test_record], " s3.1 record count: $i")
-        #s3_1_test_result = test_record_S3_1(rcd_contents[next_test_record])
-        #println("S3.1 test result for record $i: $s3_1_test_result")
-        next_test_record += 1
-    end
+    println("total_survey_length: $total_survey_length, geometric_chainage_interval: $geometric_chainage_interval, number_of_s3_1_records: $number_of_s3_1_records")
+
+    record_S3_1_check = test_record_S3_1(rcd_contents, next_test_record, number_of_s3_1_records)
+
+    next_test_record += number_of_s3_1_records # move the index to the next record after the S3.1 records
+
+    # calculate how many S4.1 records to expect.
+
+    # first calculate the number of profiles in the length of the survey, which is the total survey length divided by the chainage interval between retro profiles defined in S1.4 record at position 18-29, and then round up to the nearest whole number as there will be a S4.1 record for each profile, and if there is a partial profile at the end of the survey there will still be a S4.1 record for it
+    number_of_retro_profiles = ceil(total_survey_length /  parse(Float64, string(length_of_retro_profile)))
+
+    # calculate the number of profile points in a profile
+    profile_points_in_retro_profile = tryparse(Int, (points_in_retro_profile))
+
+    retro_devices = Int(get(XSECT_CODE, retro_positions, 0)) # 0 as default for unrecognised values
+
+    retro_points_in_survey = number_of_retro_profiles * profile_points_in_retro_profile * retro_devices
+
+    #println("total_survey_length: $total_survey_length, 
+    #           geometric_chainage_interval: $geometric_chainage_interval, 
+    #           number_of_s4_1_records: $number_of_s4_1_records")
+
+    #the number of S4.1 records to expect is the number of retro profiles in the survey, 
+    #which is the total survey length divided by the chainage interval between retro profiles, 
+    #and then round up to the nearest whole number as there will be that number of profile readings 
+    #and if there is a partial profile at the end of the survey there will still be a S4.1 record for it
+
+    number_of_s4_1_records = ceil(Int, retro_points_in_survey / 28) # there are 28 points in each S4.1 record, so divide the total number of retro points in the survey by 28 to get the number of S4.1 records needed, and round up to the nearest whole number as there will be that number of profile readings and if there is a partial profile at the end of the survey there will still be a S4.1 record for it
+    println("total_survey_length: $total_survey_length, 
+                length_of_retro_profile: $length_of_retro_profile,
+               geometric_chainage_interval: $geometric_chainage_interval, 
+               number_of_retro_profiles: $number_of_retro_profiles, 
+               profile_points_in_retro_profile: $profile_points_in_retro_profile, 
+               retro_devices: $retro_devices, 
+               retro_points_in_survey: $retro_points_in_survey, 
+               number_of_s4_1_records: $number_of_s4_1_records")
+
+    number_of_profiles_in_survey = ceil(Int, total_survey_length / parse(Float64, length_of_retro_profile))
+    println("number_of_profiles_in_survey: $number_of_profiles_in_survey") 
+
+    number_of_retro_values_in_survey = number_of_profiles_in_survey * profile_points_in_retro_profile * retro_devices
+    println("number_of_retro_values_in_survey: $number_of_retro_values_in_survey")  
+
+    analyse_file(rcd_contents, next_test_record)
+
+
 end
 
 main() 

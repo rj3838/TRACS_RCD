@@ -2,7 +2,8 @@ function test_record_S1_4(line::String)
     # Implementation for testing the S1.4 record of the RCD file
     p1 = line[1:5] # number of location markers
     p2 = line[6:17] # geometric chainage interval
-    p3 = line[18:29] # will be used to determine if there is retro reflectivity data if zero there will be no record S1.5
+    p3 = line[18:29] # chainage interval between retro profiles
+    #                   will be used to determine if there is retro reflectivity data if zero there will be no record S1.5
     p4 = line[30:30] # single char
     p5 = line[31:42] # Example: characters 31-42
     p6 = line[43:48] # Example: characters 43-48
@@ -90,7 +91,10 @@ function test_record_S1_4(line::String)
 
     #println("Validation Results: ", "p1_valid=$p1_valid, p2_valid=$p2_valid, p3_valid=$p3_valid, p4_valid=$p4_valid, p5_valid=$p5_valid, p6_valid=$p6_valid, p7_valid=$p7_valid, p8_valid=$p8_valid, p9_valid=$p9_valid, p10_valid=$p10_valid, p11_valid=$p11_valid, p12_valid=$p12_valid, p13_valid=$p13_valid, p14_valid=$p14_valid, p15_valid=$p15_valid, p16_valid=$p16_valid, p17_valid=$p17_valid, p18_valid=$p18_valid, p19_valid=$p19_valid, p20_valid=$p20_valid, p21_valid=$p21_valid, p22_valid=$p22_valid, p23_valid=$p23_valid, p24_valid=$p24_valid, p25_valid=$p25_valid, p26_valid=$p26_valid, p27_valid=$p27_valid, p28_valid=$p28_valid, p29_valid=$p29_valid, p30_valid=$p30_valid, p31_valid=$p31_valid, p32_valid=$p32_valid, p33_valid=$p33_valid, p34_valid=$p34_valid")
 
-    retro_data_exists = (p3_valid && p3 != "-0.000000000") # if the field in the S1.4 record at position 18-29 contains zero (-0.000000000) then there will be no record S1.5
+    chainage_between_retro_profiles = parse(Float64, p3) # chainage interval between retro profiles is used to determine if there is retro reflectivity data if zero there will be no record S1.5
+    retro_data_exists = (p3_valid && p3 != "-0.000000000") # if the field in the S1.4 record at position 18-29 contains zero (-0.000000000) 
+                                                            # then there will be no record S1.5
+    side_of_retro_profiles = p4 # side of retro profiles is used to determine the side of the road where the retro reflectivity data is collected if there are S1.5 records to process
     transverse_profile_points = parse(Int, p9) # number of transverse profile points is used to determine how many S1.6 records there are
     rmst_points = parse(Int, p20) # number of RMST points is used to determine how many S1.7 records there are
     println("RMST points: $rmst_points")
@@ -98,6 +102,7 @@ function test_record_S1_4(line::String)
     interior_noise_points = p26
     exterior_noise_points = p28
     number_of_location_markers = p1
+    retro_positions = p4
     geometric_chainage_interval = parse(Float64, p2)
     S1_4_valid = all_valid(p8_valid, p9_valid, p10_valid, p11_valid, p12_valid, p13_valid, p14_valid, p15_valid, p16_valid, p17_valid, p18_valid, p19_valid, p20_valid, p21_valid, p22_valid, p23_valid, p24_valid, p25_valid, p26_valid, p27_valid, p28_valid, p29_valid, p30_valid, p31_valid, p32_valid, p33_valid, p34_valid)
 
@@ -108,6 +113,7 @@ function test_record_S1_4(line::String)
                         interior_noise_points, 
                         exterior_noise_points, 
                         number_of_location_markers,
+                        retro_positions,
                         geometric_chainage_interval # return values
 
 end
