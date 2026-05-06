@@ -102,11 +102,25 @@ function is_valid_f5_3(str::String)
     return length(str) == 5 && occursin(r"^\s*\d+\.\d{3}$", str)
 end
 
+function is_valid_f5_1(str::String)
+    
+    # Format: optional leading spaces, optional +/- sign, digits, decimal point, 1 decimal digit = 5 chars
+    # Example: 12.3
+    return length(str) == 5 && occursin(r"^\s*[+-]?\d+\.\d{1}$", str)
+end
+
 function is_valid_f9_3(str::String)
     # F9.3: 9 total chars with sign, 3 decimal places
     # Format: optional leading spaces, optional +/- sign, digits, decimal point, 3 decimals
     # Example: +12345.678 or -12345.678
     return length(str) == 9 && occursin(r"^\s*[+-]?\d+\.\d{3}$", str)
+end
+
+function is_valid_f8_2(str::String)
+    # F8.2: 8 total chars with sign, 2 decimal places
+    # Format: optional leading spaces, optional +/- sign, digits, decimal point, 2 decimals
+    # Example: +12345.67 or -12345.67
+    return length(str) == 8 && occursin(r"^\s*[+-]?\d+\.\d{2}$", str)
 end
 
 function is_valid_float_format(str::String)
