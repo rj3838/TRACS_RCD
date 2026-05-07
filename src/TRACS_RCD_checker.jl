@@ -6,12 +6,13 @@ include("test_octave_frequencies.jl")
 include("test_transverse_points.jl")
 include("format_checking.jl")
 include("analyse_file.jl")
+include("test_record_S5_1.jl")
 include("test_record_S3_1.jl")
 include("test_record_S1_5.jl")
 include("test_record_S1_4.jl")
 include("test_record_S1_1_to_3.jl")
 
-const XSECT_CODE = Dict("L" => 1, "R" => 1, "B" => 2, "n" => 0, "F" => 2)
+const XSECT_CODE = Dict("L" => 1, "R" => 1, "B" => 2, "N" => 0, "F" => 3)
 
 function select_file_to_read()
     # Implementation for selecting a file to read
@@ -64,6 +65,7 @@ function main()
                                     exterior_noise_points,
                                     number_of_location_markers,
                                     retro_positions,
+                                    long_profile_chainage_interval,
                                     geometric_chainage_interval = test_record_S1_4(rcd_contents[next_test_record + 1])
     println("S1.4 test result: $S1_4_test_result")
 
@@ -170,9 +172,19 @@ function main()
     number_of_retro_values_in_survey = number_of_profiles_in_survey * profile_points_in_retro_profile * retro_devices
     println("number_of_retro_values_in_survey: $number_of_retro_values_in_survey")  
 
-    analyse_file(rcd_contents, next_test_record)
+    next_test_record = analyse_file(rcd_contents, next_test_record)
 
+    println("Next test record index after format checking: $next_test_record")
 
+    number_of_s5_1_points = ceil(Int, total_survey_length / long_profile_chainage_interval)
+    number_of_s5_1_records = ceil(Int, number_of_s5_1_points / 4) # there are 4 blocks of test values in each S5.1 record, so divide the total number of S5.1 points by 4 to get the number of S5.1 records needed, and round up to the nearest whole number as there will be that number of profile readings and if there is a partial profile at the end of the survey there will still be a S5.1 record for it
+
+    next_test_record = test_record_S5_1(rcd_contents, next_test_record, number_of_s5_1_records)
+    last_test_record = next_test_record - 1
+    println("Last test record index after S5.1 testing: $last_test_record")
+    println("length of last_test_record: $(length(rcd_contents[last_test_record]))")
+    println("Next test record index after S5.1 testing: $next_test_record")
+    println("length of next_test_record: $(length(rcd_contents[next_test_record]))")
 end
 
 main() 

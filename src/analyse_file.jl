@@ -10,7 +10,9 @@ function analyse_file(rcd_contents::Vector{String}, next_test_record::Int)
             println("Format change at line $i: length is $(length(line)), expected 84")
             println("Valid records: $valid_records")
             println("Total values in valid records: $total_values")
-            return
+            next_test_record += valid_records
+            println("Next test record index after format checking: $next_test_record")
+            return next_test_record -1 # return the index of the last valid record before the format change
         end
         
         # Check each 3-character field is a right-justified integer
@@ -27,10 +29,12 @@ function analyse_file(rcd_contents::Vector{String}, next_test_record::Int)
         
         valid_records += 1
         total_values += 28
+        
     end
     
     # Reached end of file without format change
     println("No format change detected")
     println("Valid records: $valid_records")
     println("Total values: $total_values")
+    
 end

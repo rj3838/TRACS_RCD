@@ -5,7 +5,7 @@ function test_record_S1_4(line::String)
     p3 = line[18:29] # chainage interval between retro profiles
     #                   will be used to determine if there is retro reflectivity data if zero there will be no record S1.5
     p4 = line[30:30] # single char
-    p5 = line[31:42] # Example: characters 31-42
+    p5 = line[31:42] # longitudinal profile chainage interval
     p6 = line[43:48] # Example: characters 43-48
     p7 = line[49:54] # Example: characters 49-54
     p8 = line[55:66] # Example: characters 55-66
@@ -103,6 +103,7 @@ function test_record_S1_4(line::String)
     exterior_noise_points = p28
     number_of_location_markers = p1
     retro_positions = p4
+    long_profile_chainage_interval = parse(Float64, p5)
     geometric_chainage_interval = parse(Float64, p2)
     S1_4_valid = all_valid(p8_valid, p9_valid, p10_valid, p11_valid, p12_valid, p13_valid, p14_valid, p15_valid, p16_valid, p17_valid, p18_valid, p19_valid, p20_valid, p21_valid, p22_valid, p23_valid, p24_valid, p25_valid, p26_valid, p27_valid, p28_valid, p29_valid, p30_valid, p31_valid, p32_valid, p33_valid, p34_valid)
 
@@ -114,6 +115,7 @@ function test_record_S1_4(line::String)
                         exterior_noise_points, 
                         number_of_location_markers,
                         retro_positions,
+                        long_profile_chainage_interval,
                         geometric_chainage_interval # return values
 
 end
