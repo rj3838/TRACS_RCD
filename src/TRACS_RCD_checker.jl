@@ -1,11 +1,14 @@
 # This is written in the Julia programming language.
 
 using Dates
+using DataFrames
+using CSV
 
 include("test_octave_frequencies.jl")
 include("test_transverse_points.jl")
 include("format_checking.jl")
 include("analyse_file.jl")
+include("test_record_S6_1.jl")
 include("test_record_S5_1.jl")
 include("test_record_S3_1.jl")
 include("test_record_S1_5.jl")
@@ -16,7 +19,9 @@ const XSECT_CODE = Dict("L" => 1, "R" => 1, "B" => 2, "N" => 0, "F" => 3)
 
 function select_file_to_read()
     # Implementation for selecting a file to read
-    file_to_read = "C:\\Users\\rjaques\\OneDrive - TRL Limited\\Development\\TRACS_rcd\\test_data\\001_A1_NB_L1_A_R18_250906113702_tracs5.rcd"
+    #file_to_read = "C:\\Users\\rjaques\\OneDrive - TRL Limited\\Development\\TRACS_rcd\\test_data\\001_A1_NB_L1_A_R18_250906113702_tracs5.rcd"
+    #file_to_read = "C:\\Users\\rjaques\\OneDrive - TRL Limited\\Development\\TRACS_rcd\\test_data\\LONG-PM-MID-R1_R18_260408102553_tracs5.rcd"
+    file_to_read = "C:\\Users\\rjaques\\OneDrive - TRL Limited\\Development\\TRACS_rcd\\test_data\\TRANS-PM-MID-R1_R18_260408110901_tracs5.rcd"
     return file_to_read
 end
 
@@ -66,6 +71,7 @@ function main()
                                     number_of_location_markers,
                                     retro_positions,
                                     long_profile_chainage_interval,
+                                    chainage_between_transverse_profiles,
                                     geometric_chainage_interval = test_record_S1_4(rcd_contents[next_test_record + 1])
     println("S1.4 test result: $S1_4_test_result")
 
@@ -112,6 +118,7 @@ function main()
     # if it's zero don't process any S2.1 records
 
     if tryparse(Int, number_of_location_markers) > 0
+        println("Number of location markers: $number_of_location_markers, processing S2.1 records")
         for marker in 1:tryparse(Int, number_of_location_markers)
             println(rcd_contents[next_test_record])
             #s2_1_test_result = test_record_S2_1(rcd_contents[next_test_record])
@@ -181,11 +188,57 @@ function main()
 
     next_test_record = test_record_S5_1(rcd_contents, next_test_record, number_of_s5_1_records)
     last_test_record = next_test_record - 1
+    next_test_record_after_s5_1 = next_test_record
     println("Last test record index after S5.1 testing: $last_test_record")
     println("length of last_test_record: $(length(rcd_contents[last_test_record]))")
     println("Next test record index after S5.1 testing: $next_test_record")
     println("length of next_test_record: $(length(rcd_contents[next_test_record]))")
+
+    # the number of S6.1 records
+    number_of_transverse_profiles = (total_survey_length / chainage_between_transverse_profiles)
+    number_of_points_in_s6_1_records = number_of_transverse_profiles * number_of_transverse_profile_points
+    number_of_s6_1_records = ceil(Int, number_of_points_in_s6_1_records / 16) # there are 16 blocks of test values in each S6.1 record,
+                                                                              # so divide the total number of S6.1 points by 16 to
+                                                                              # get the number of S6.1 records needed, and round up to
+                                                                              # the nearest whole number as there will be that number of
+                                                                              # profile readings.
+
+    # test the S6.1 records
+    next_test_record = test_record_S6_1(rcd_contents, next_test_record, number_of_s6_1_records)
+    last_test_record = next_test_record - 1
+    println("Last test record index after S6.1 testing: $last_test_record")
+    println("length of last_test_record: $(length(rcd_contents[last_test_record]))")
+    println("Next test record index after S6.1 testing: $next_test_record")
+    println("length of next_test_record: $(length(rcd_contents[next_test_record]))")
+
+    transverse_records = rcd_contents[next_test_record_after_s5_1:last_test_record]
+    println("Number of transverse points: $number_of_transverse_profile_points, Number of transverse profiles: $number_of_transverse_profiles, Number of S6.1 records: $number_of_s6_1_records, Number of points in S6.1 records: $number_of_points_in_s6_1_records, Number of transverse records extracted: $(length(transverse_records))")
+
+    #transverse_records_df = DataFrame(transverse_records, :auto)
+    #println(size(transverse_records_df))
+
+    filter!(line -> !isempty(strip(line)), transverse_records)
+
+    open("transverse_records.txt", "w") do f
+        for line in transverse_records
+            println(f, line)
+        end
+    end
+
+    col_names = ["col$i" for i in 1:28]
+
+    #transverse_records_df = DataFrame(
+    #    [parse(Int, line[(f-1)*3+1 : f*3]) for line in transverse_records, f in 1:28],
+    #    col_names
+    #)
+    transverse_records_df = DataFrame(
+    [something(tryparse(Int, strip(line[(f-1)*3+1 : f*3])), 0) for line in transverse_records, f in 1:28],
+    col_names
+)
+
+    println(size(transverse_records_df))
+
+
 end
 
-main() 
- 
+main()

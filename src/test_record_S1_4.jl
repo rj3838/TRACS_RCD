@@ -8,7 +8,7 @@ function test_record_S1_4(line::String)
     p5 = line[31:42] # longitudinal profile chainage interval
     p6 = line[43:48] # Example: characters 43-48
     p7 = line[49:54] # Example: characters 49-54
-    p8 = line[55:66] # Example: characters 55-66
+    p8 = line[55:66] # chainage between transverse profiles
     p9 = line[67:69] # number of transverse profile points
     p10 = line[70:81] # Example: characters 70-81
     p11 = line[82:93] # Example: characters 82-93
@@ -104,6 +104,7 @@ function test_record_S1_4(line::String)
     number_of_location_markers = p1
     retro_positions = p4
     long_profile_chainage_interval = parse(Float64, p5)
+    chainage_between_transverse_profiles = parse(Float64, p8)
     geometric_chainage_interval = parse(Float64, p2)
     S1_4_valid = all_valid(p8_valid, p9_valid, p10_valid, p11_valid, p12_valid, p13_valid, p14_valid, p15_valid, p16_valid, p17_valid, p18_valid, p19_valid, p20_valid, p21_valid, p22_valid, p23_valid, p24_valid, p25_valid, p26_valid, p27_valid, p28_valid, p29_valid, p30_valid, p31_valid, p32_valid, p33_valid, p34_valid)
 
@@ -116,6 +117,7 @@ function test_record_S1_4(line::String)
                         number_of_location_markers,
                         retro_positions,
                         long_profile_chainage_interval,
+                        chainage_between_transverse_profiles,
                         geometric_chainage_interval # return values
 
 end
