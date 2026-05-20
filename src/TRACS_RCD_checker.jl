@@ -15,6 +15,7 @@ include(joinpath(@__DIR__, "test_record_S1_5.jl"))
 include(joinpath(@__DIR__, "test_record_S1_4.jl"))
 include(joinpath(@__DIR__, "test_record_S1_1_to_3.jl"))
 include(joinpath(@__DIR__, "select_location_markers.jl"))
+include(joinpath(@__DIR__, "reshape_records.jl"))
 
 const XSECT_CODE = Dict("L" => 1, "R" => 1, "B" => 2, "N" => 0, "F" => 3)
 
@@ -218,7 +219,11 @@ function main()
     println("length of next_test_record: $(length(rcd_contents[next_test_record]))")
 
     transverse_records = rcd_contents[next_test_record_after_s5_1:last_test_record]
-    println("Number of transverse points: $number_of_transverse_profile_points, Number of transverse profiles: $number_of_transverse_profiles, Number of S6.1 records: $number_of_s6_1_records, Number of points in S6.1 records: $number_of_points_in_s6_1_records, Number of transverse records extracted: $(length(transverse_records))")
+    println("Number of transverse points: $number_of_transverse_profile_points,
+                Number of transverse profiles: $number_of_transverse_profiles,
+                Number of S6.1 records: $number_of_s6_1_records,
+                Number of points in S6.1 records: $number_of_points_in_s6_1_records,
+                Number of transverse records extracted: $(length(transverse_records))")
 
     #transverse_records_df = DataFrame(transverse_records, :auto)
     #println(size(transverse_records_df))
@@ -231,19 +236,31 @@ function main()
         end
     end
 
-    col_names = ["col$i" for i in 1:28]
+    # Each group in a line is 6 chars: 5-char integer value followed by 1 alpha (dropped).
+    # Derive the number of groups from the first line so the code adapts to any line length.
+    n_groups  = length(transverse_records[1]) ÷ 6
+    col_names = ["col$i" for i in 1:n_groups]
 
-    #transverse_records_df = DataFrame(
-    #    [parse(Int, line[(f-1)*3+1 : f*3]) for line in transverse_records, f in 1:28],
-    #    col_names
-    #)
     transverse_records_df = DataFrame(
-    [something(tryparse(Int, strip(line[(f-1)*3+1 : f*3])), 0) for line in transverse_records, f in 1:28],
-    col_names
+        [something(tryparse(Int, strip(line[(g-1)*6+1 : (g-1)*6+5])), 0)
+         for line in transverse_records, g in 1:n_groups],
+        col_names
     )
 
     println(size(transverse_records_df))
 
+    transverse_records_214_df = reshape_16_to_214(transverse_records_df)
+
+    println(size(transverse_records_214_df))
+
+    # add a chainage column to the transverse 214 records
+    start = 0
+    step  = chainage_between_transverse_profiles
+    transverse_records_214_df.chainage = start .+ (0:nrow(transverse_records_214_df)-1) .* step
+
+    #first(transverse_records_214_df,5)
+
+    CSV.write("transverse_records.txt", transverse_records_214_df)
 
 end
 
