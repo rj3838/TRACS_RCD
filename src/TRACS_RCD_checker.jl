@@ -23,8 +23,7 @@ function select_file_to_read()
     # Implementation for selecting a file to read
     #file_to_read = "C:\\Users\\rjaques\\OneDrive - TRL Limited\\Development\\TRACS_rcd\\test_data\\001_A1_NB_L1_A_R18_250906113702_tracs5.rcd"
     #file_to_read = "C:\\Users\\rjaques\\OneDrive - TRL Limited\\Development\\TRACS_rcd\\test_data\\LONG-PM-MID-R1_R18_260408102553_tracs5.rcd"
-    #file_to_read = "C:\\Users\\rjaques\\OneDrive - TRL Limited\\Development\\TRACS_rcd\\test_data\\TRANS-PM-MID-R1_R18_260408110901_tracs5.rcd"
-    file_to_read = "/Users/royj/IdeaProjects/TRACS_RCD/test_data/TRANS-PM-MID-R1_R18_260408110901_tracs5.rcd"
+    file_to_read = "C:\\Users\\rjaques\\OneDrive - TRL Limited\\Development\\TRACS_rcd\\test_data\\TRANS-PM-MID-R1_R18_260408110901_tracs5.rcd"
 
     return file_to_read
 end
@@ -42,6 +41,7 @@ function read_rcd_file(rcd_file_name)::Vector{String}
     return rcd_to_return
 end
 
+# function Base.invokelatest(main)
 function main()
     rcd_file_name = select_file_to_read()
     rcd_contents = read_rcd_file(rcd_file_name)

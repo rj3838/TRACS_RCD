@@ -100,19 +100,21 @@ function select_location_markers(rcd_contents::Vector{String},
     # Show the window first so GTK can complete the initial render pass.
     showall(win)
 
-    # GTK on macOS then writes repeated "drawing failure" warnings directly to
-    # file descriptor 2 (bypassing Julia's stderr).  Redirect fd 2 to /dev/null
-    # only during the blocking gtk_main() call to suppress that noise.
-    saved_fd2 = ccall(:dup,   Cint, (Cint,),        2)
-    null_fd   = ccall(:open,  Cint, (Cstring, Cint), "/dev/null", 1)  # O_WRONLY = 1
-    ccall(:dup2,  Cint, (Cint, Cint), null_fd, 2)
-    ccall(:close, Cint, (Cint,),      null_fd)
+    if Sys.isapple()
+        # GTK on macOS writes repeated "drawing failure" warnings directly to
+        # file descriptor 2 (bypassing Julia's stderr). Suppress during gtk_main().
+        saved_fd2 = ccall(:dup,   Cint, (Cint,),        2)
+        null_fd   = ccall(:open,  Cint, (Cstring, Cint), "/dev/null", 1)
+        ccall(:dup2,  Cint, (Cint, Cint), null_fd, 2)
+        ccall(:close, Cint, (Cint,),      null_fd)
+    end
 
     Gtk.gtk_main()   # blocks here; Gtk.gtk_quit() is called on window destroy
 
-    # Restore stderr so subsequent program output is unaffected.
-    ccall(:dup2,  Cint, (Cint, Cint), saved_fd2, 2)
-    ccall(:close, Cint, (Cint,),      saved_fd2)
+    if Sys.isapple()
+        ccall(:dup2,  Cint, (Cint, Cint), saved_fd2, 2)
+        ccall(:close, Cint, (Cint,),      saved_fd2)
+    end
 
     # ── 5. Build and return result DataFrame ─────────────────────────────────
     # For each selected marker at original index i, the section before it ends
